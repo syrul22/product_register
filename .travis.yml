@@ -9,7 +9,8 @@ before_install:
   - sudo apt-get update
   - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
   - docker-compose up --build -d
-
+  - docker login -u "$HEROKU_USER_NAME" -p "$HEROKU_API_KEY" registry.heroku.com
+ 
 script:
   - docker-compose logs web
   - docker-compose logs db
@@ -17,3 +18,12 @@ script:
   - docker-compose exec --env 'RAILS_ENV=test' web rails db:create
   - docker-compose exec --env 'RAILS_ENV=test' web rails db:migrate
   - docker-compose exec --env 'RAILS_ENV=test' web rails test
+
+deploy:
+  provider: script
+  script:
+    docker build -t registry.heroku.com/$HEROKU_APP_NAME/web -f Dockerfile.prod .;
+    docker push registry.heroku.com/$HEROKU_APP_NAME/web;
+    heroku run --app $HEROKU_APP_NAME rails db:migrate;
+  on:
+    branch: master
